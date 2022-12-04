@@ -9,6 +9,12 @@ import inspect
 # This should be settable through a config file / environment variable
 SOURCE_CODE_ROOT = "src"
 MAX_ITER_SAFETY = 1000
+DEBUG = True
+
+def debug(*args):
+    if DEBUG:
+        print("[HOT-RELOAD-DEBUG] ", *args)
+
 
 def get_imports_from_file(path: str) -> List[str]:
     """Parses the lines of a file and filter lines that contain the substring 'import' 
@@ -58,8 +64,13 @@ def find_artifacts_in_project(root: str, dependencies_to_track: List[str]) -> Tu
     list_files = list(os.walk(root))
     for dep in dependencies_to_track:
         module_dep = dep + ".py"
-        for root, dirs, files_ in list_files:
-            package_name = re.sub(f"{root}/", "", root)
+        for root_, dirs, files_ in list_files:
+            package_name = (
+                re.sub(f"{root}/", "", root_)
+                .replace("/", ".", -1)
+                
+            )
+            debug("Package_name ", package_name, "Dep ", dep)
             if package_name == dep:
                 packages.append(dep)
                 files.append(os.path.join(root, package_name))
@@ -151,7 +162,7 @@ def pytest_ignore_collect(collection_path, path, config):
     """Main entry point of this plugin"""
 
     str_path = str(path)
-
+    debug("Collecting path ", str_path)
     # Do not handle modules, e.g., let pytest expand on these paths
     if not str_path.endswith(".py"):
         return False
@@ -159,22 +170,26 @@ def pytest_ignore_collect(collection_path, path, config):
     os.listdir(SOURCE_CODE_ROOT)
 
     import_statements = get_imports_from_file(str_path)
+    debug("Import statements ", import_statements)
     dependencies_to_track = find_dependencies_to_track(import_statements)
 
+    debug("Dependencies", dependencies_to_track)
     files, packages, modules = find_artifacts_in_project(SOURCE_CODE_ROOT, dependencies_to_track)
 
+    debug("Packages ", packages)
+    debug("Modules ", modules)
     relevant_files = set(files)
-    print("Relevant files", relevant_files)
+    debug("Relevant files", relevant_files)
 
     imported_modules = import_modules_from_files(SOURCE_CODE_ROOT, relevant_files)
     referred_files = find_referred_files(imported_modules)
-    print("Referred files ", referred_files)
+    debug("Referred files ", referred_files)
 
     referred_files = set([absolute_path_to_root_relative_path(f) for f in referred_files])
 
     new_files = referred_files - relevant_files
     relevant_files = relevant_files.union(new_files)
-    print("New files", new_files)
+    debug("New files", new_files)
     i = 0
     while len(new_files) > 0 and i < MAX_ITER_SAFETY:
         imported_modules = import_modules_from_files(SOURCE_CODE_ROOT, new_files)
@@ -187,7 +202,7 @@ def pytest_ignore_collect(collection_path, path, config):
     if i == MAX_ITER_SAFETY:
         raise ValueError("Infinite loop circuit breaker")
 
-    print("Relevant files", relevant_files)
+    debug("Relevant files", relevant_files)
     sim = SessionItemManager.as_singleton()
     sim.add_dependency(str_path, relevant_files)
 
