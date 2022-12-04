@@ -1,10 +1,9 @@
 import pytest
-
 import inspect
-from package2 import mod4
+import package3.package4.mod5
 
 @pytest.mark.skip("Case not yet handled")
 def test_hello():
-    assert mod4.hello_mod_4()
+    assert package3.package4.mod5.hello_mod5()
 
 

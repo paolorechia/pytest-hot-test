@@ -52,17 +52,17 @@ def pytest_ignore_collect(collection_path, path, config):
 
     import_statements = [re.sub("\s+", " ", line) for line in source_code if "import" in line ]
 
-    dependencies = []
     os.listdir(SOURCE_CODE_ROOT)
 
     dependencies_to_track = []
     for import_ in import_statements:
-        print(import_)
         imported_module_or_package = import_.split(" ")[1]
         print("Imported ", imported_module_or_package)
         dependencies_to_track.append(imported_module_or_package)
 
     # Can we find it in /src?
+    dependencies = []
+
     list_files = list(os.walk(SOURCE_CODE_ROOT))
     for dep in dependencies_to_track:
         for root, dirs, files in list_files:
