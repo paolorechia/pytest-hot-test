@@ -2,13 +2,13 @@ import pytest
 import re
 import sys
 import os
-from typing import List, Tuple, Set, Any
+from typing import List, Tuple, Set, Any, Dict
 import importlib
 import inspect
 
 # This should be settable through a config file / environment variable
 SOURCE_CODE_ROOT = "src"
-
+MAX_ITER_SAFETY = 1000
 
 def get_imports_from_file(path: str) -> List[str]:
     """Parses the lines of a file and filter lines that contain the substring 'import' 
@@ -89,7 +89,12 @@ def import_modules_from_files(root, files) -> List[Any]:
     """Import a list of files as modules, starting from the root of the project."""
     imported_modules = []
     for file in files:
-        importable = file.replace(f"{root}/", "", -1).replace(".py", "")
+        importable = (
+            file
+            .replace(f"{root}/", "", -1)
+            .replace(".py", "")
+            .replace("/", ".", -1)
+        )
         imported_modules.append(importlib.import_module(importable))
     return imported_modules
 
@@ -124,6 +129,7 @@ class SessionItemManager:
 
     def __init__(self):
         self.ignore_paths = set()
+        self.dependency_tracker: Dict[str, Set[str]] = {}
 
     @classmethod
     def as_singleton(cls):
@@ -134,6 +140,9 @@ class SessionItemManager:
     def add(self, path):
         self.ignore_paths.add(path)
 
+    def add_dependency(self, test_path: str, dependencies: Set[str]):
+        self.dependency_tracker[test_path] = dependencies
+    
 
 def pytest_sessionstart(session):
     sys.path.append(SOURCE_CODE_ROOT)
@@ -161,22 +170,35 @@ def pytest_ignore_collect(collection_path, path, config):
     referred_files = find_referred_files(imported_modules)
     print("Referred files ", referred_files)
 
-
     referred_files = set([absolute_path_to_root_relative_path(f) for f in referred_files])
 
     new_files = referred_files - relevant_files
+    relevant_files = relevant_files.union(new_files)
     print("New files", new_files)
+    i = 0
+    while len(new_files) > 0 and i < MAX_ITER_SAFETY:
+        imported_modules = import_modules_from_files(SOURCE_CODE_ROOT, new_files)
+        referred_files = find_referred_files(imported_modules)
+        referred_files = set([absolute_path_to_root_relative_path(f) for f in referred_files])
+        new_files = referred_files - relevant_files
+        relevant_files = relevant_files.union(new_files)
+        i += 1
 
-    SessionItemManager.as_singleton().add(str(path))
+    if i == MAX_ITER_SAFETY:
+        raise ValueError("Infinite loop circuit breaker")
+
+    print("Relevant files", relevant_files)
+    sim = SessionItemManager.as_singleton()
+    sim.add_dependency(str_path, relevant_files)
 
 
 
 def pytest_terminal_summary(terminalreporter: "TerminalReporter") -> None:
     """Adds a new section to the terminal reporter."""
     tr = terminalreporter
-    tr.write_sep("=", "Tests that were skipped by 'hot-test' plugin", yellow=True)
+    tr.write_sep("=", "Tests dependencies tracked by 'hot-test' plugin", green=True)
     tr.write_line("")
-    for item in SessionItemManager.as_singleton().ignore_paths:
-        tr.write_line(item)
-    
-    tr.write_line("Not too shabby :D", red=True)
+    for key, item in SessionItemManager.as_singleton().dependency_tracker.items():
+        tr.write_line(f"{key} ----depends on ----> {item}")
+
+    tr.write_line("")
