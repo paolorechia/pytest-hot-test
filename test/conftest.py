@@ -1,5 +1,10 @@
 import pytest
+import re
 import sys
+import os
+
+# This should be settable through a config file / environment variable
+SOURCE_CODE_ROOT = "src"
 
 class SessionItemManager:
     _ = None
@@ -17,7 +22,7 @@ class SessionItemManager:
         self.ignore_paths.add(path)
 
 def pytest_sessionstart(session):
-    sys.path.append("src")
+    sys.path.append(SOURCE_CODE_ROOT)
 
 def pytest_collection(session):
     print("Collection")
@@ -34,8 +39,42 @@ def pytest_collection_modifyitems(config, items):
 
 def pytest_ignore_collect(collection_path, path, config):
     print("Ignore collect", collection_path, path, config)
+    print(collection_path)
+    print(path)
+    str_path = str(path)
+
+    # Do not handle modules, e.g., let pytest expand on these paths
+    if not str_path.endswith(".py"):
+        return False
+
+    with open(path, "r") as fp:
+        source_code = fp.readlines()
+
+    import_statements = [re.sub("\s+", " ", line) for line in source_code if "import" in line ]
+
+    dependencies = []
+    os.listdir(SOURCE_CODE_ROOT)
+
+    dependencies_to_track = []
+    for import_ in import_statements:
+        print(import_)
+        imported_module_or_package = import_.split(" ")[1]
+        print("Imported ", imported_module_or_package)
+        dependencies_to_track.append(imported_module_or_package)
+
+    # Can we find it in /src?
+    list_files = list(os.walk(SOURCE_CODE_ROOT))
+    for dep in dependencies_to_track:
+        for root, dirs, files in list_files:
+            # Is package? Then it should be a directory
+            # if dep in dirs:
+            
+            print(root, dirs, files)
+
+
     SessionItemManager.as_singleton().add(str(path))
-    return True
+
+
 
 def pytest_collect_file(parent, file_path):
     print("Collect parent ", parent)
