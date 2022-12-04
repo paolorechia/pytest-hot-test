@@ -2,7 +2,7 @@ import pytest
 import re
 import sys
 import os
-from typing import List, Tuple, Set
+from typing import List, Tuple, Set, Any
 import importlib
 import inspect
 
@@ -11,13 +11,32 @@ SOURCE_CODE_ROOT = "src"
 
 
 def get_imports_from_file(path: str) -> List[str]:
+    """Parses the lines of a file and filter lines that contain the substring 'import' 
+    
+    This function also removes repeated whitespaces, to make it post-processing easier.
+    """
     with open(path, "r") as fp:
         source_code = fp.readlines()
     import_statements = [re.sub("\s+", " ", line) for line in source_code if "import" in line ]
     return import_statements
 
-
 def find_dependencies_to_track(import_statements: List[str]):
+    """Transforms the import lines above into a list of potential dependencies to track.
+    These dependencies are modules or packages
+    
+    For instance, given this input: 
+
+        import inspect
+        import mod1
+        from package2 import mod4
+    
+    We'd get back a list:
+
+        - inspect
+        - mod1
+        - package2
+
+    """
     dependencies_to_track = []
     for import_ in import_statements:
         imported_module_or_package = import_.split(" ")[1]
@@ -25,6 +44,13 @@ def find_dependencies_to_track(import_statements: List[str]):
     return dependencies_to_track
 
 def find_artifacts_in_project(root: str, dependencies_to_track: List[str]) -> Tuple[List[str], List[str], List[str]]:
+    """Finds in which files the modules or packages can be found in the project.
+
+    Implemented: modules
+
+    TODO: Implement package finder
+    TODO: Implement package/module in the form: 'from package import module'
+    """
     modules = []
     packages = []
     files = []
@@ -59,7 +85,20 @@ def absolute_path_to_root_relative_path(path: str) -> str:
     return split[1]
 
 
+def import_modules_from_files(root, files) -> List[Any]:
+    """Import a list of files as modules, starting from the root of the project."""
+    imported_modules = []
+    for file in files:
+        importable = file.replace(f"{root}/", "", -1).replace(".py", "")
+        imported_modules.append(importlib.import_module(importable))
+    return imported_modules
+
+
 def find_referred_files(imported_modules) -> Set[str]:
+    """Inspect a module and retrieves the source code where the module member is originally defined.
+    
+    Returns a set of filepaths with all used files.
+    """
     refererred_files = []
     for imported in imported_modules:
         member_keys = dir(imported)
@@ -73,14 +112,14 @@ def find_referred_files(imported_modules) -> Set[str]:
     return set(refererred_files)
 
 
-def import_modules_from_files(root, files):
-    imported_modules = []
-    for file in files:
-        importable = file.replace(f"{SOURCE_CODE_ROOT}/", "", -1).replace(".py", "")
-        imported_modules.append(importlib.import_module(importable))
-    return imported_modules
 
 class SessionItemManager:
+    """Test session state (singleton)
+    
+    Used to keep global state, such as which
+    tests are not being executed because no changes
+    were detected.
+    """
     _ = None
 
     def __init__(self):
@@ -100,6 +139,8 @@ def pytest_sessionstart(session):
     sys.path.append(SOURCE_CODE_ROOT)
 
 def pytest_ignore_collect(collection_path, path, config):
+    """Main entry point of this plugin"""
+
     str_path = str(path)
 
     # Do not handle modules, e.g., let pytest expand on these paths
@@ -131,8 +172,9 @@ def pytest_ignore_collect(collection_path, path, config):
 
 
 def pytest_terminal_summary(terminalreporter: "TerminalReporter") -> None:
+    """Adds a new section to the terminal reporter."""
     tr = terminalreporter
-    tr.write_sep("=", "Tests that were skipped by this plugin", yellow=True)
+    tr.write_sep("=", "Tests that were skipped by 'hot-test' plugin", yellow=True)
     tr.write_line("")
     for item in SessionItemManager.as_singleton().ignore_paths:
         tr.write_line(item)
