@@ -134,9 +134,6 @@ def _find_referred_files(imported_modules) -> Set[str]:
 
 def find_dependencies(collection_path, str_path, config):
     _debug_dependency_tracking("Collecting path ", str_path)
-    # Do not handle modules, e.g., let pytest expand on these paths
-    if not str_path.endswith(".py"):
-        return False
 
     os.listdir(SOURCE_CODE_ROOT)
 
