@@ -8,15 +8,16 @@ from typing import List
 from hot_test_plugin import dependency_tracker as dtracker
 from hot_test_plugin import session_manager
 
+
 def pytest_sessionstart(session):
     sys.path.append(dtracker.SOURCE_CODE_ROOT)
-
 
 
 @dataclasses.dataclass
 class FileHash:
     filepath: str
     hash: str
+
 
 class HashManager:
     def __init__(self, name: str) -> None:
@@ -25,7 +26,7 @@ class HashManager:
     def load(self):
         with open(f".{self.name}_hashes", "r") as fp:
             lines = fp.readlines()
-        
+
         file_hashes: List[FileHash]
         for line in lines:
             split = line.split(" ")
@@ -33,8 +34,6 @@ class HashManager:
             file_ = split[1]
             file_hashes.append(FileHash(filepath=file_, hash=hash))
 
-
-        
 
 def pytest_ignore_collect(collection_path, path, config):
     """Main entry point of this plugin"""

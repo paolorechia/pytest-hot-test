@@ -1,12 +1,14 @@
 from typing import Set, Dict
 
+
 class SessionItemManager:
     """Test session state (singleton)
-    
+
     Used to keep global state, such as which
     tests are not being executed because no changes
     were detected.
     """
+
     _ = None
 
     def __init__(self):
@@ -24,7 +26,7 @@ class SessionItemManager:
 
     def add_dependency(self, test_path: str, dependencies: Set[str]):
         self.dependency_tracker[test_path] = dependencies
-    
+
 
 def get_sim() -> SessionItemManager:
     return SessionItemManager.as_singleton()

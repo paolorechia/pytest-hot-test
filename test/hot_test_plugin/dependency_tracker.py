@@ -13,27 +13,30 @@ def _debug_dependency_tracking(*args):
     if DEBUG:
         print("[HOT-RELOAD-DEBUG-DEPENDENCY-TRACKER] ", *args)
 
-    
+
 def _get_imports_from_file(path: str) -> List[str]:
-    """Parses the lines of a file and filter lines that contain the substring 'import' 
-    
+    """Parses the lines of a file and filter lines that contain the substring 'import'
+
     This function also removes repeated whitespaces, to make it post-processing easier.
     """
     with open(path, "r") as fp:
         source_code = fp.readlines()
-    import_statements = [re.sub(r"\s+", " ", line) for line in source_code if "import" in line ]
+    import_statements = [
+        re.sub(r"\s+", " ", line) for line in source_code if "import" in line
+    ]
     return import_statements
+
 
 def _find_dependencies_to_track(import_statements: List[str]):
     """Transforms the import lines above into a list of potential dependencies to track.
     These dependencies are modules or packages
-    
-    For instance, given this input: 
+
+    For instance, given this input:
 
         import inspect
         import mod1
         from package2 import mod4
-    
+
     We'd get back a list:
 
         - inspect
@@ -47,7 +50,10 @@ def _find_dependencies_to_track(import_statements: List[str]):
         dependencies_to_track.append(imported_module_or_package)
     return dependencies_to_track
 
-def _find_artifacts_in_project(root: str, dependencies_to_track: List[str]) -> Tuple[List[str], List[str], List[str]]:
+
+def _find_artifacts_in_project(
+    root: str, dependencies_to_track: List[str]
+) -> Tuple[List[str], List[str], List[str]]:
     """Finds in which files the modules or packages can be found in the project."""
     modules = []
     packages = []
@@ -57,10 +63,7 @@ def _find_artifacts_in_project(root: str, dependencies_to_track: List[str]) -> T
     for dep in dependencies_to_track:
         module_dep = dep + ".py"
         for root_, dirs, files_ in list_files:
-            package_name = (
-                re.sub(f"{root}/", "", root_)
-                .replace("/", ".", -1)
-            )
+            package_name = re.sub(f"{root}/", "", root_).replace("/", ".", -1)
             if "__pycache__" in package_name:
                 continue
 
@@ -87,13 +90,13 @@ def _find_artifacts_in_project(root: str, dependencies_to_track: List[str]) -> T
 
 def _absolute_path_to_root_relative_path(path: str) -> str:
     """Trims an absolute path to a relative path relative to the working directory.
-    
+
     Example:
         path /Users/dev/pytest-hot-test/src/common/utils.py
         wd  /Users/dev/pytest-hot-test/
         Split  ['', 'src/common/utils.py']
         New files {'src/common/utils.py'}
-    
+
     """
     wd = os.getcwd() + "/"
     split = path.split(wd)
@@ -105,10 +108,7 @@ def _import_modules_from_files(root, files) -> List[Any]:
     imported_modules = []
     for file in files:
         importable = (
-            file
-            .replace(f"{root}/", "", -1)
-            .replace(".py", "")
-            .replace("/", ".", -1)
+            file.replace(f"{root}/", "", -1).replace(".py", "").replace("/", ".", -1)
         )
         imported_modules.append(importlib.import_module(importable))
     return imported_modules
@@ -116,7 +116,7 @@ def _import_modules_from_files(root, files) -> List[Any]:
 
 def _find_referred_files(imported_modules) -> Set[str]:
     """Inspect a module and retrieves the source code where the module member is originally defined.
-    
+
     Returns a set of filepaths with all used files.
     """
     refererred_files = []
@@ -131,6 +131,7 @@ def _find_referred_files(imported_modules) -> Set[str]:
                 pass
     return set(refererred_files)
 
+
 def find_dependencies(collection_path, str_path, config):
     _debug_dependency_tracking("Collecting path ", str_path)
     # Do not handle modules, e.g., let pytest expand on these paths
@@ -144,7 +145,9 @@ def find_dependencies(collection_path, str_path, config):
     dependencies_to_track = _find_dependencies_to_track(import_statements)
 
     _debug_dependency_tracking("Dependencies", dependencies_to_track)
-    files, packages, modules = _find_artifacts_in_project(SOURCE_CODE_ROOT, dependencies_to_track)
+    files, packages, modules = _find_artifacts_in_project(
+        SOURCE_CODE_ROOT, dependencies_to_track
+    )
 
     _debug_dependency_tracking("Packages ", packages)
     _debug_dependency_tracking("Modules ", modules)
@@ -155,7 +158,9 @@ def find_dependencies(collection_path, str_path, config):
     referred_files = _find_referred_files(imported_modules)
     _debug_dependency_tracking("Referred files ", referred_files)
 
-    referred_files = set([_absolute_path_to_root_relative_path(f) for f in referred_files])
+    referred_files = set(
+        [_absolute_path_to_root_relative_path(f) for f in referred_files]
+    )
 
     new_files = referred_files - relevant_files
     relevant_files = relevant_files.union(new_files)
@@ -164,7 +169,9 @@ def find_dependencies(collection_path, str_path, config):
     while len(new_files) > 0 and i < MAX_ITER_SAFETY:
         imported_modules = _import_modules_from_files(SOURCE_CODE_ROOT, new_files)
         referred_files = _find_referred_files(imported_modules)
-        referred_files = set([_absolute_path_to_root_relative_path(f) for f in referred_files])
+        referred_files = set(
+            [_absolute_path_to_root_relative_path(f) for f in referred_files]
+        )
         new_files = referred_files - relevant_files
         relevant_files = relevant_files.union(new_files)
         i += 1
