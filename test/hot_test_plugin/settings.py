@@ -1,0 +1,4 @@
+PLUGIN_HASH_FOLDER = ".pytest-hot-cache"
+SOURCE_CODE_ROOT = "src"
+MAX_ITER_SAFETY = 1000
+DEBUG = False

@@ -3,14 +3,10 @@ import os
 from typing import List, Tuple, Set, Any
 import importlib
 import inspect
-
-SOURCE_CODE_ROOT = "src"
-MAX_ITER_SAFETY = 1000
-DEBUG = False
-
+from hot_test_plugin import settings
 
 def _debug_dependency_tracking(*args):
-    if DEBUG:
+    if settings.DEBUG:
         print("[HOT-RELOAD-DEBUG-DEPENDENCY-TRACKER] ", *args)
 
 
@@ -135,7 +131,7 @@ def _find_referred_files(imported_modules) -> Set[str]:
 def find_dependencies(collection_path, str_path, config):
     _debug_dependency_tracking("Collecting path ", str_path)
 
-    os.listdir(SOURCE_CODE_ROOT)
+    os.listdir(settings.SOURCE_CODE_ROOT)
 
     import_statements = _get_imports_from_file(str_path)
     _debug_dependency_tracking("Import statements ", import_statements)
@@ -143,7 +139,7 @@ def find_dependencies(collection_path, str_path, config):
 
     _debug_dependency_tracking("Dependencies", dependencies_to_track)
     files, packages, modules = _find_artifacts_in_project(
-        SOURCE_CODE_ROOT, dependencies_to_track
+        settings.SOURCE_CODE_ROOT, dependencies_to_track
     )
 
     _debug_dependency_tracking("Packages ", packages)
@@ -151,7 +147,7 @@ def find_dependencies(collection_path, str_path, config):
     relevant_files = set(files)
     _debug_dependency_tracking("Relevant files", relevant_files)
 
-    imported_modules = _import_modules_from_files(SOURCE_CODE_ROOT, relevant_files)
+    imported_modules = _import_modules_from_files(settings.SOURCE_CODE_ROOT, relevant_files)
     referred_files = _find_referred_files(imported_modules)
     _debug_dependency_tracking("Referred files ", referred_files)
 
@@ -163,8 +159,8 @@ def find_dependencies(collection_path, str_path, config):
     relevant_files = relevant_files.union(new_files)
     _debug_dependency_tracking("New files", new_files)
     i = 0
-    while len(new_files) > 0 and i < MAX_ITER_SAFETY:
-        imported_modules = _import_modules_from_files(SOURCE_CODE_ROOT, new_files)
+    while len(new_files) > 0 and i < settings.MAX_ITER_SAFETY:
+        imported_modules = _import_modules_from_files(settings.SOURCE_CODE_ROOT, new_files)
         referred_files = _find_referred_files(imported_modules)
         referred_files = set(
             [_absolute_path_to_root_relative_path(f) for f in referred_files]
@@ -173,7 +169,7 @@ def find_dependencies(collection_path, str_path, config):
         relevant_files = relevant_files.union(new_files)
         i += 1
 
-    if i == MAX_ITER_SAFETY:
+    if i == settings.MAX_ITER_SAFETY:
         raise ValueError("Infinite loop circuit breaker")
 
     _debug_dependency_tracking("Relevant files", relevant_files)

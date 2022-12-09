@@ -7,10 +7,11 @@ from typing import List, Optional
 from hot_test_plugin import dependency_tracker as dtracker
 from hot_test_plugin import session_manager
 from hot_test_plugin import file_hash_manager
+from hot_test_plugin import settings
 
 
 def pytest_sessionstart(session):
-    sys.path.append(dtracker.SOURCE_CODE_ROOT)
+    sys.path.append(settings.SOURCE_CODE_ROOT)
 
 
 def pytest_ignore_collect(collection_path, path, config):
@@ -27,7 +28,23 @@ def pytest_ignore_collect(collection_path, path, config):
     if "hot_test_plugin" in str_path:
         return True
 
+    if not os.path.exists(settings.PLUGIN_HASH_FOLDER):
+        os.makedirs(settings.PLUGIN_HASH_FOLDER)
+
     sim = session_manager.get_sim()
+
+    # State synchronization logic
+
+    # Always load test file
+    # --> Load old hash if it is available
+    # --> Find new hash and compare
+    # --> If hashes are different or load is not available: save hash to disk
+
+    # Always load dependencies
+    # --> Load dependency list if they are available
+    # --> Load old hashes if they are available
+    # --> Find new hash and compare
+    # --> Save hashes to disk
 
     # Todo: finish this block
     # test_files_hashes = sim.previous_test_files_hash_manager.load()
@@ -51,6 +68,8 @@ def pytest_ignore_collect(collection_path, path, config):
     old_source_files_hashes: List[
         file_hash_manager.FileHash
     ] = sim.source_files_hash_manager.load()
+
+    # Cases that we need to think about:
 
     # New dependency, no point checking hash per hash
     old_files = set([fhash.filepath for fhash in old_source_files_hashes])
@@ -78,10 +97,23 @@ def pytest_ignore_collect(collection_path, path, config):
                 pass
 
     # TODO: always test hash to disk
-    print("Has changes: ", has_changes)
-    # If has changes, we return True to flag pytest we should run the test
-    # Else we return False to skip the test
-    return not has_changes
+
+    is_first_run = False
+    is_source_changed = False
+    is_test_changed = False
+
+    if is_first_run:
+        return True
+    
+    if is_source_changed:
+        return True
+
+    if is_test_changed:
+        return True
+
+    return False
+
+    
 
 
 def pytest_terminal_summary(terminalreporter: "TerminalReporter") -> None:
