@@ -3,7 +3,7 @@ import hashlib
 import dataclasses
 from hot_test_plugin import settings
 
-from typing import List
+from typing import List, Tuple
 
 @dataclasses.dataclass
 class FileHash:
@@ -39,20 +39,33 @@ def _get_test_filename(filepath: str) -> str:
 
 
 def _get_test_hash_filepath(filepath: str) -> str:
-    _bootstrap_test_folder()
     test_folder = _get_test_folder()
-    filename = _get_test_filename(filepath)
-    test_hash_filepath = os.path.join(test_folder, filename)
+    dir_, fp_ = _merge_folder(test_folder, filepath)
+    _bootstrap_folder(dir_)
+    filename = _get_test_filename(fp_)
+    test_hash_filepath = os.path.join(dir_, filename)
     return test_hash_filepath
 
 def _get_test_folder():
     return os.path.join(settings.PLUGIN_HASH_FOLDER, "test/")
 
-def _get_source_folder():
-    return os.path.join(settings.PLUGIN_HASH_FOLDER, "source/")
+def _get_dependencies_folder():
+    return os.path.join(settings.PLUGIN_HASH_FOLDER, "dependencies/")
 
-def _bootstrap_test_folder():
-    _bootstrap_folder(_get_test_folder())
+def _merge_folder(plugin_folder: str, test_filepath: str) -> Tuple[str, str]:
+        # Merge with plugin hash source folder
+        source_folder = plugin_folder
+        filename = test_filepath.split("/")[-1]
+        filename = filename.replace(".py", ".txt")
+        filename = ".hashes_" + filename
+
+        # Hashes filepath
+        hashes_filepath = "/".join(test_filepath.split("/")[0:-1] + [filename])
+        hashes_filepath = hashes_filepath[1:]
+        hashes_filepath = os.path.join(source_folder, hashes_filepath)
+        hashes_dir = os.path.dirname(hashes_filepath)
+        hashes_filepath = hashes_filepath
+        return hashes_dir, hashes_filepath
 
 def _bootstrap_folder(folder: str):
     if not os.path.exists(folder):
@@ -88,25 +101,11 @@ def save_hash_file(filepath: str, file_hashes: List[FileHash]):
 
 class HashManager:
     def __init__(self, filepath: str) -> None:
-
-        # Remove leading slash
-        hashes_filepath = filepath[1:]
-
-        # Merge with plugin hash source folder
-        source_folder = _get_source_folder()
-        filename = filepath.split("/")[-1]
-        filename = filename.replace(".py", ".txt")
-        filename = ".hashes_" + filename
-
-        # Hashes filepath
-        hashes_filepath = "/".join(filepath.split("/")[0:-1] + [filename])
-        hashes_filepath = hashes_filepath[1:]
-        hashes_filepath = os.path.join(source_folder, hashes_filepath)
-        self.hashes_dir = os.path.dirname(hashes_filepath)
-        self.hashes_filepath = hashes_filepath
-
+        dir_, fp_ = _merge_folder(_get_dependencies_folder(), filepath)
+        self.hashes_dir = dir_
+        self.hashes_filepath = fp_
         _bootstrap_folder(self.hashes_dir)
-        
+
         self.hashes = []
 
     def load(self):
@@ -116,6 +115,5 @@ class HashManager:
 
     def save(self, file_hashes: List[FileHash]):
         self.hashes = file_hashes
-        print("Saving to ", self.hashes_filepath)
         save_hash_file(self.hashes_filepath, file_hashes)
 
