@@ -28,8 +28,6 @@ def pytest_ignore_collect(collection_path, path, config):
     if "hot_test_plugin" in str_path:
         return True
 
-    if not os.path.exists(settings.PLUGIN_HASH_FOLDER):
-        os.makedirs(settings.PLUGIN_HASH_FOLDER)
 
     is_first_run = False
     is_source_changed = False
@@ -40,7 +38,6 @@ def pytest_ignore_collect(collection_path, path, config):
     # State synchronization logic
 
     # Always load test file
-
     # --> Load old hash if it is available
     last_test_hash = file_hash_manager.get_test_file_hash(str_path)
     # --> Find new hash and compare
@@ -56,7 +53,7 @@ def pytest_ignore_collect(collection_path, path, config):
     elif last_test_hash[0].hash != test_hash.hash:
         is_test_changed = True
 
-    # --> Save hash to disk
+    # --> Always save hash to disk
     file_hash_manager.save_test_file_hash(str_path, test_hash)
 
 

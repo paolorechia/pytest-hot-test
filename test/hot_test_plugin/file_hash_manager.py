@@ -39,19 +39,36 @@ def _get_test_filename(filepath: str) -> str:
         .replace(".py", ".txt")
     )
 
+def _get_test_hash_filepath(filepath: str) -> str:
+    _bootstrap_test_folder()
+    test_folder = _get_test_folder()
+    filename = _get_test_filename(filepath)
+    test_hash_filepath = os.path.join(test_folder, filename)
+    return test_hash_filepath
+
+def _get_test_folder():
+    return os.path.join(settings.PLUGIN_HASH_FOLDER, "test/")
+
+def _get_source_folder():
+    return os.path.join(settings.PLUGIN_HASH_FOLDER, "source/")
+
+def _bootstrap_test_folder():
+    if not os.path.exists(_get_test_folder()):
+        os.makedirs(_get_test_folder())
+
+def _bootstrap_source_folder():
+    if not os.path.exists(_get_source_folder()):
+        os.makedirs(_get_source_folder())
 
 def get_test_file_hash(filepath: str) -> List[FileHash]:
-    filename = _get_test_filename(filepath)
-    test_hash_filepath = os.path.join(settings.PLUGIN_HASH_FOLDER, filename)
+    test_hash_filepath = _get_test_hash_filepath(filepath)
     if os.path.exists(test_hash_filepath):
         return read_hash_file(test_hash_filepath)
     return []
 
 def save_test_file_hash(filepath: str, file_hash: FileHash):
-    filename = _get_test_filename(filepath)
-    test_hash_filepath = os.path.join(settings.PLUGIN_HASH_FOLDER, filename)
+    test_hash_filepath = _get_test_hash_filepath(filepath)
     save_hash_file(test_hash_filepath, [file_hash])
-
 
 def read_hash_file(filepath: str) -> List[FileHash]:
     with open(filepath, "r") as fp:
@@ -69,8 +86,6 @@ def save_hash_file(filepath: str, file_hashes: List[FileHash]):
     with open(filepath, "w") as fp:
         for file_hash in file_hashes:
             fp.write(f"{file_hash.hash} {file_hash.filepath}\n")
-
-
 
 class HashManager:
     def __init__(self, name: str) -> None:
