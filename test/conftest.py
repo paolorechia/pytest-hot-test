@@ -31,14 +31,34 @@ def pytest_ignore_collect(collection_path, path, config):
     if not os.path.exists(settings.PLUGIN_HASH_FOLDER):
         os.makedirs(settings.PLUGIN_HASH_FOLDER)
 
+    is_first_run = False
+    is_source_changed = False
+    is_test_changed = False
+
     sim = session_manager.get_sim()
 
     # State synchronization logic
 
     # Always load test file
+
     # --> Load old hash if it is available
+    last_test_hash = file_hash_manager.get_test_file_hash(str_path)
     # --> Find new hash and compare
-    # --> If hashes are different or load is not available: save hash to disk
+    test_hash: Optional[file_hash_manager.FileHash] = None
+    if os.path.isfile(str_path):
+        print(str_path)
+        test_hash = file_hash_manager.FileHash.from_filepath(str_path)
+        print("Current test hash ", test_hash)
+
+    if not last_test_hash:
+        is_first_run = True
+
+    elif last_test_hash[0].hash != test_hash.hash:
+        is_test_changed = True
+
+    # --> Save hash to disk
+    file_hash_manager.save_test_file_hash(str_path, test_hash)
+
 
     # Always load dependencies
     # --> Load dependency list if they are available
@@ -58,11 +78,6 @@ def pytest_ignore_collect(collection_path, path, config):
     relevant_files = dtracker.find_dependencies(collection_path, str_path, config)
     sim.add_dependency(str_path, relevant_files)
 
-    test_hash: Optional[file_hash_manager.FileHash] = None
-    if os.path.isfile(str_path):
-        print(str_path)
-        test_hash = file_hash_manager.FileHash.from_filepath(str_path)
-        print("Test hash ", test_hash)
 
     # Fetch stored source file hashes
     old_source_files_hashes: List[
@@ -98,20 +113,18 @@ def pytest_ignore_collect(collection_path, path, config):
 
     # TODO: always test hash to disk
 
-    is_first_run = False
-    is_source_changed = False
-    is_test_changed = False
+
 
     if is_first_run:
-        return True
+        return False
     
     if is_source_changed:
-        return True
+        return False
 
     if is_test_changed:
-        return True
+        return False
 
-    return False
+    return True
 
     
 
