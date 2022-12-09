@@ -88,7 +88,7 @@ def read_hash_file(filepath: str) -> List[FileHash]:
 
     file_hashes: List[FileHash] = []
     for line in lines:
-        split = line.split(" ")
+        split = line.strip().split(" ")
         hash = split[0]
         file_ = split[1]
         file_hashes.append(FileHash(filepath=file_, hash=hash))
@@ -112,6 +112,7 @@ class HashManager:
         if not os.path.exists(self.hashes_filepath):
             return []
         self.hashes = read_hash_file(self.hashes_filepath)
+        return self.hashes
 
     def save(self, file_hashes: List[FileHash]):
         self.hashes = file_hashes

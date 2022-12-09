@@ -173,4 +173,6 @@ def find_dependencies(collection_path, str_path, config):
         raise ValueError("Infinite loop circuit breaker")
 
     _debug_dependency_tracking("Relevant files", relevant_files)
-    return relevant_files
+    return set([
+        f for f in relevant_files if os.path.isfile(f) and f.endswith(".py")
+    ])

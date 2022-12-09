@@ -1,5 +1,4 @@
 from typing import Set, Dict
-from hot_test_plugin import file_hash_manager
 
 
 class SessionItemManager:
