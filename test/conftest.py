@@ -65,19 +65,8 @@ def pytest_ignore_collect(collection_path, path, config):
     # --> Load old hashes if they are available
     # --> Find new hash and compare
     # --> Save hashes to disk
-
-    # Todo: finish this block
-    # test_files_hashes = sim.previous_test_files_hash_manager.load()
-    # for tf in test_files_hashes:
-    #     print("Debug ", tf.filepath, str_path)
-    #     test_file_md5 = file_hash_manager.get_file_hash(str_path)
-    #     if tf.filepath == str_path:
-    #         print("Test has changed")
-    #         return True
-
     relevant_files = dtracker.find_dependencies(collection_path, str_path, config)
     sim.add_dependency(str_path, relevant_files)
-
 
     # Fetch stored source file hashes
     old_source_files_hashes: List[
@@ -110,9 +99,6 @@ def pytest_ignore_collect(collection_path, path, config):
         for file_ in relevant_files:
             if old_source_hash.filepath == file_:
                 pass
-
-    # TODO: always test hash to disk
-
 
 
     if is_first_run:

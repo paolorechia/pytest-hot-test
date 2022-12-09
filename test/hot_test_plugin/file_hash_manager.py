@@ -32,15 +32,23 @@ def get_file_hash(filepath: str) -> FileHash:
         )
 
 
+def _get_test_filename(filepath: str) -> str:
+    return (
+        filepath
+        .split("/")[-1]
+        .replace(".py", ".txt")
+    )
+
+
 def get_test_file_hash(filepath: str) -> List[FileHash]:
-    filename = filepath.split("/")[-1]
+    filename = _get_test_filename(filepath)
     test_hash_filepath = os.path.join(settings.PLUGIN_HASH_FOLDER, filename)
     if os.path.exists(test_hash_filepath):
         return read_hash_file(test_hash_filepath)
     return []
 
 def save_test_file_hash(filepath: str, file_hash: FileHash):
-    filename = filepath.split("/")[-1]
+    filename = _get_test_filename(filepath)
     test_hash_filepath = os.path.join(settings.PLUGIN_HASH_FOLDER, filename)
     save_hash_file(test_hash_filepath, [file_hash])
 
