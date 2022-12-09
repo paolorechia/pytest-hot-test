@@ -72,17 +72,12 @@ def pytest_ignore_collect(collection_path, path, config):
         file_hash_manager.FileHash
     ] = hmanager.load()
 
-    print("Testing ", str_path)
-    print("Old source", old_source_files_hashes)
     # New dependency, no point checking hash per hash
     if not old_source_files_hashes:
         result.is_source_changed = True
     else:
         old_files = set([fhash.filepath for fhash in old_source_files_hashes])
-        print("Relevant files", relevant_files)
-        print("Old files", old_files)
         if relevant_files != old_files:
-            print("---> Dependencies changed")
             result.is_source_changed = True
 
     # --> Find new hashes
@@ -105,7 +100,6 @@ def pytest_ignore_collect(collection_path, path, config):
     # --> Save hashes to disk
     hmanager.save(dependencies_hashes)
 
-    print(result)
     if result.is_first_run:
         return False
     
