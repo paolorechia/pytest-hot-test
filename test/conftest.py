@@ -43,9 +43,7 @@ def pytest_ignore_collect(collection_path, path, config):
     # --> Find new hash and compare
     test_hash: Optional[file_hash_manager.FileHash] = None
     if os.path.isfile(str_path):
-        print(str_path)
         test_hash = file_hash_manager.FileHash.from_filepath(str_path)
-        print("Current test hash ", test_hash)
 
     if not last_test_hash:
         is_first_run = True
@@ -56,47 +54,49 @@ def pytest_ignore_collect(collection_path, path, config):
     # --> Always save hash to disk
     file_hash_manager.save_test_file_hash(str_path, test_hash)
 
-
-    # Always load dependencies
-    # --> Load dependency list if they are available
-    # --> Load old hashes if they are available
-    # --> Find new hash and compare
-    # --> Save hashes to disk
+    # Find dependencies
     relevant_files = dtracker.find_dependencies(collection_path, str_path, config)
     sim.add_dependency(str_path, relevant_files)
 
+    # Always pre-saved hash files
     # Fetch stored source file hashes
+
+    # --> Load old hashes if they are available
+    
+    hmanager = file_hash_manager.HashManager(str_path)
     old_source_files_hashes: List[
         file_hash_manager.FileHash
-    ] = sim.source_files_hash_manager.load()
-
-    # Cases that we need to think about:
+    ] = hmanager.load()
 
     # New dependency, no point checking hash per hash
-    old_files = set([fhash.filepath for fhash in old_source_files_hashes])
-    print("Relevant files", relevant_files)
-    print("Old files", old_files)
-    if relevant_files != old_files:
-        has_changes = True
+    if not old_source_files_hashes:
+        is_source_changed = True
+    else:
+        old_files = set([fhash.filepath for fhash in old_source_files_hashes])
+        print("Relevant files", relevant_files)
+        print("Old files", old_files)
+        if relevant_files != old_files:
+            is_source_changed = True
 
-    print("Relevant files", relevant_files)
-
+    # --> Find new hashes
     dependencies_hashes = []
     for source_file in relevant_files:
         if os.path.isfile(source_file):
             file_hash = file_hash_manager.FileHash.from_filepath(source_file)
             dependencies_hashes.append(file_hash)
 
-    # In the first time, flag as True so we can proceed to save the hashes for the first time
-    if not old_source_files_hashes:
-        has_changes = True
+    # --> Compare with old hashes
+    # (Yikes, O(n^2)), but who cares at this point ;))
+    if not is_source_changed:
+        for old_source_hash in old_source_files_hashes:
+            for new_source_hash in dependencies_hashes:
+                if old_source_hash.filepath == new_source_hash.filepath:
+                    if old_source_hash.hash != new_source_hash.hash:
+                        is_source_changed = True
+                        break
 
-    # TODO: always save hashes to disk
-    for old_source_hash in old_source_files_hashes:
-        for file_ in relevant_files:
-            if old_source_hash.filepath == file_:
-                pass
-
+    # --> Save hashes to disk
+    hmanager.save(dependencies_hashes)
 
     if is_first_run:
         return False
@@ -109,7 +109,6 @@ def pytest_ignore_collect(collection_path, path, config):
 
     return True
 
-    
 
 
 def pytest_terminal_summary(terminalreporter: "TerminalReporter") -> None:

@@ -15,9 +15,6 @@ class SessionItemManager:
     def __init__(self):
         self.ignore_paths = set()
         self.dependency_tracker: Dict[str, Set[str]] = {}
-        self.source_files_hash_manager: file_hash_manager.HashManager = (
-            file_hash_manager.HashManager("source")
-        )
 
     @classmethod
     def as_singleton(cls):

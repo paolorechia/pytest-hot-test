@@ -5,8 +5,6 @@ from hot_test_plugin import settings
 
 from typing import List
 
-
-
 @dataclasses.dataclass
 class FileHash:
     filepath: str
@@ -39,6 +37,7 @@ def _get_test_filename(filepath: str) -> str:
         .replace(".py", ".txt")
     )
 
+
 def _get_test_hash_filepath(filepath: str) -> str:
     _bootstrap_test_folder()
     test_folder = _get_test_folder()
@@ -53,12 +52,12 @@ def _get_source_folder():
     return os.path.join(settings.PLUGIN_HASH_FOLDER, "source/")
 
 def _bootstrap_test_folder():
-    if not os.path.exists(_get_test_folder()):
-        os.makedirs(_get_test_folder())
+    _bootstrap_folder(_get_test_folder())
 
-def _bootstrap_source_folder():
-    if not os.path.exists(_get_source_folder()):
-        os.makedirs(_get_source_folder())
+def _bootstrap_folder(folder: str):
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
 
 def get_test_file_hash(filepath: str) -> List[FileHash]:
     test_hash_filepath = _get_test_hash_filepath(filepath)
@@ -88,22 +87,35 @@ def save_hash_file(filepath: str, file_hashes: List[FileHash]):
             fp.write(f"{file_hash.hash} {file_hash.filepath}\n")
 
 class HashManager:
-    def __init__(self, name: str) -> None:
-        self.name = name
-        self.hashes_filepath = f"{settings.PLUGIN_HASH_FOLDER}/{self.name}_hashes"
+    def __init__(self, filepath: str) -> None:
+
+        # Remove leading slash
+        hashes_filepath = filepath[1:]
+
+        # Merge with plugin hash source folder
+        source_folder = _get_source_folder()
+        filename = filepath.split("/")[-1]
+        filename = filename.replace(".py", ".txt")
+        filename = ".hashes_" + filename
+
+        # Hashes filepath
+        hashes_filepath = "/".join(filepath.split("/")[0:-1] + [filename])
+        hashes_filepath = hashes_filepath[1:]
+        hashes_filepath = os.path.join(source_folder, hashes_filepath)
+        self.hashes_dir = os.path.dirname(hashes_filepath)
+        self.hashes_filepath = hashes_filepath
+
+        _bootstrap_folder(self.hashes_dir)
+        
         self.hashes = []
 
     def load(self):
         if not os.path.exists(self.hashes_filepath):
             return []
-
         self.hashes = read_hash_file(self.hashes_filepath)
 
-    def save(self, filepaths):
-        file_hashes: List[FileHash] = []
-
-        for filepath in filepaths:
-            file_hashes.append(get_file_hash(filepath))
-
+    def save(self, file_hashes: List[FileHash]):
+        self.hashes = file_hashes
+        print("Saving to ", self.hashes_filepath)
         save_hash_file(self.hashes_filepath, file_hashes)
 
