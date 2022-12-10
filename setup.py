@@ -13,7 +13,7 @@ def read(fname):
 
 setup(
     name="pytest-hot-test",
-    version="0.1.0a",
+    version="0.1.1",
     author="Paolo Rechia",
     author_email="paolorechia@gmail.com",
     maintainer="Paolo Rechia",
