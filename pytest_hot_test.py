@@ -15,6 +15,7 @@ from hot_test_plugin import message_handler
 
 def pytest_sessionstart(session):
     sys.path.append(settings.SOURCE_CODE_ROOT)
+    message_handler.messages = []
 
 
 @dataclass
@@ -124,12 +125,13 @@ def pytest_terminal_summary(
 ) -> None:
     """Adds a new section to the terminal reporter."""
     tr = terminalreporter
-    if settings.DEBUG == True:
+    if settings.DEBUG:
         tr.write_sep(
             "*",
             "Debug messages",
             yellow=True
-    )
+        )
+
     for message in message_handler.messages:
         for elem in message:
             tr.write(str(elem))
