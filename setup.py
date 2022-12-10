@@ -22,7 +22,7 @@ setup(
     url='https://github.com/paolorechia/pytest-hot-test',
     description='A plugin that tracks test changes ',
     long_description=read('README.rst'),
-    py_modules=['pytest_hot_reload'],
+    py_modules=['pytest_hot_test'],
     python_requires='>=3.7',
     install_requires=['pytest>=3.5.0'],
     classifiers=[
@@ -45,7 +45,7 @@ setup(
     ],
     entry_points={
         'pytest11': [
-            'hot-reload = pytest_hot_reload',
+            'hot-test = pytest_hot_test',
         ],
     },
 )
