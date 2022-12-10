@@ -33,7 +33,7 @@ def pytest_ignore_collect(collection_path, path, config):
 
     # Do not handle modules, e.g., let pytest expand on these paths
     if "test_" not in str_path:
-        return False
+        return True
 
     # Do not handle modules, e.g., let pytest expand on these paths
     if not str_path.endswith(".py"):

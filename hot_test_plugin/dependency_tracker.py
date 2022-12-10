@@ -8,7 +8,6 @@ from hot_test_plugin import errors
 from hot_test_plugin.message_handler import debug_statement
 
 
-
 def _get_imports_from_file(path: str) -> List[str]:
     """Parses the lines of a file and filter lines that contain the substring 'import'
 
@@ -146,7 +145,19 @@ def _find_referred_files(imported_modules) -> Set[str]:
 def find_dependencies(collection_path, str_path, config):
     debug_statement("Collecting path ", str_path)
 
-    os.listdir(settings.SOURCE_CODE_ROOT)
+    try:
+        os.listdir(settings.SOURCE_CODE_ROOT)
+    except FileNotFoundError:
+        raise errors.InvalidSourcePath(f"""
+        The path '{settings.SOURCE_CODE_ROOT}' could not be found or is not a directory.
+
+        Make sure to set the environment variable like below:
+
+        export PYTEST_HOT_TEST_SOURCE_ROOT=project_folder
+
+        Where 'project_folder' represents the path to your source files,
+        for instance 'src'.
+        """)
 
     import_statements = _get_imports_from_file(str_path)
     debug_statement("Import statements ", import_statements)
