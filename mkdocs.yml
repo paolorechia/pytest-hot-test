@@ -1,0 +1,10 @@
+site_name: pytest-hot-reload
+site_description: A plugin that tracks test changes 
+site_author: Paolo Rechia
+
+theme: readthedocs
+
+repo_url: https://github.com/paolorechia/pytest-hot-reload
+
+pages:
+- Home: index.md
