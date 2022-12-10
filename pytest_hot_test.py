@@ -10,6 +10,7 @@ from hot_test_plugin import settings
 from hot_test_plugin import file_hash_manager
 from hot_test_plugin import session_manager
 from hot_test_plugin import dependency_tracker as dtracker
+from hot_test_plugin import message_handler
 
 
 def pytest_sessionstart(session):
@@ -123,6 +124,16 @@ def pytest_terminal_summary(
 ) -> None:
     """Adds a new section to the terminal reporter."""
     tr = terminalreporter
+    if settings.DEBUG == True:
+        tr.write_sep(
+            "*",
+            "Debug messages",
+            yellow=True
+    )
+    for message in message_handler.messages:
+        for elem in message:
+            tr.write(str(elem))
+        tr.write_line("")
     tr.write_sep(
         "=",
         "Tests dependencies tracked by 'hot-test' plugin",
