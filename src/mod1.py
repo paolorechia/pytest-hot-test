@@ -12,4 +12,3 @@ class SomeClass:
 
 class New:
     pass
-

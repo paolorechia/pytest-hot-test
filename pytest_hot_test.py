@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import pytest
-
-import pytest
 import sys
 import os
 from dataclasses import dataclass
@@ -12,6 +10,7 @@ from hot_test_plugin import settings
 from hot_test_plugin import file_hash_manager
 from hot_test_plugin import session_manager
 from hot_test_plugin import dependency_tracker as dtracker
+
 
 def pytest_sessionstart(session):
     sys.path.append(settings.SOURCE_CODE_ROOT)
@@ -38,7 +37,6 @@ def pytest_ignore_collect(collection_path, path, config):
     if "hot_test_plugin" in str_path:
         return True
 
-
     result = IgnoreResult()
 
     sim = session_manager.get_sim()
@@ -63,18 +61,18 @@ def pytest_ignore_collect(collection_path, path, config):
     file_hash_manager.save_test_file_hash(str_path, test_hash)
 
     # Find dependencies
-    relevant_files = dtracker.find_dependencies(collection_path, str_path, config)
+    relevant_files = dtracker.find_dependencies(
+        collection_path, str_path, config
+    )
     sim.add_dependency(str_path, relevant_files)
 
     # Always pre-saved hash files
     # Fetch stored source file hashes
 
     # --> Load old hashes if they are available
-    
+
     hmanager = file_hash_manager.HashManager(str_path)
-    old_source_files_hashes: List[
-        file_hash_manager.FileHash
-    ] = hmanager.load()
+    old_source_files_hashes: List[file_hash_manager.FileHash] = hmanager.load()
 
     # New dependency, no point checking hash per hash
     if not old_source_files_hashes:
@@ -106,7 +104,7 @@ def pytest_ignore_collect(collection_path, path, config):
 
     if result.is_first_run:
         return False
-    
+
     if result.is_source_changed:
         return False
 
@@ -116,11 +114,16 @@ def pytest_ignore_collect(collection_path, path, config):
     return True
 
 
-
-def pytest_terminal_summary(terminalreporter: "TerminalReporter") -> None:
+def pytest_terminal_summary(
+    terminalreporter
+) -> None:
     """Adds a new section to the terminal reporter."""
     tr = terminalreporter
-    tr.write_sep("=", "Tests dependencies tracked by 'hot-test' plugin", green=True)
+    tr.write_sep(
+        "=",
+        "Tests dependencies tracked by 'hot-test' plugin",
+        green=True
+    )
     tr.write_line("")
     for key, item in session_manager.get_sim().dependency_tracker.items():
         tr.write_line(f"{key} ----depends on ----> {item}")
@@ -128,18 +131,17 @@ def pytest_terminal_summary(terminalreporter: "TerminalReporter") -> None:
     tr.write_line("")
 
 
-
 def pytest_addoption(parser):
-    group = parser.getgroup('hot-test')
+    group = parser.getgroup("hot-test")
     group.addoption(
-        '--foo',
-        action='store',
-        dest='dest_foo',
-        default='2022',
-        help='Set the value for the fixture "bar".'
+        "--foo",
+        action="store",
+        dest="dest_foo",
+        default="2022",
+        help='Set the value for the fixture "bar".',
     )
 
-    parser.addini('HELLO', 'Dummy pytest.ini setting')
+    parser.addini("HELLO", "Dummy pytest.ini setting")
 
 
 @pytest.fixture

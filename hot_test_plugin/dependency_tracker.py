@@ -5,6 +5,7 @@ import importlib
 import inspect
 from hot_test_plugin import settings
 
+
 def _debug_dependency_tracking(*args):
     if settings.DEBUG:
         print("[HOT-RELOAD-DEBUG-DEPENDENCY-TRACKER] ", *args)
@@ -147,7 +148,9 @@ def find_dependencies(collection_path, str_path, config):
     relevant_files = set(files)
     _debug_dependency_tracking("Relevant files", relevant_files)
 
-    imported_modules = _import_modules_from_files(settings.SOURCE_CODE_ROOT, relevant_files)
+    imported_modules = _import_modules_from_files(
+        settings.SOURCE_CODE_ROOT, relevant_files
+    )
     referred_files = _find_referred_files(imported_modules)
     _debug_dependency_tracking("Referred files ", referred_files)
 
@@ -160,7 +163,9 @@ def find_dependencies(collection_path, str_path, config):
     _debug_dependency_tracking("New files", new_files)
     i = 0
     while len(new_files) > 0 and i < settings.MAX_ITER_SAFETY:
-        imported_modules = _import_modules_from_files(settings.SOURCE_CODE_ROOT, new_files)
+        imported_modules = _import_modules_from_files(
+            settings.SOURCE_CODE_ROOT, new_files
+        )
         referred_files = _find_referred_files(imported_modules)
         referred_files = set(
             [_absolute_path_to_root_relative_path(f) for f in referred_files]
@@ -173,6 +178,4 @@ def find_dependencies(collection_path, str_path, config):
         raise ValueError("Infinite loop circuit breaker")
 
     _debug_dependency_tracking("Relevant files", relevant_files)
-    return set([
-        f for f in relevant_files if os.path.isfile(f) and f.endswith(".py")
-    ])
+    return set([f for f in relevant_files if os.path.isfile(f) and f.endswith(".py")])
