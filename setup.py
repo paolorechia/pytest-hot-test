@@ -13,7 +13,7 @@ def read(fname):
 
 setup(
     name="pytest-hot-test",
-    version="0.1.0",
+    version="0.1.0a",
     author="Paolo Rechia",
     author_email="paolorechia@gmail.com",
     maintainer="Paolo Rechia",
@@ -28,6 +28,8 @@ setup(
         "hot_test_plugin.file_hash_manager",
         "hot_test_plugin.session_manager",
         "hot_test_plugin.settings",
+        "hot_test_plugin.message_handler",
+        "hot_test_plugin.errors",
     ],
     python_requires=">=3.7",
     install_requires=["pytest>=3.5.0"],
